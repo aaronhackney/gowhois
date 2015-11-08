@@ -1,61 +1,61 @@
 package main
 
-	type Handle struct {
-			Handle string `json:"$"`
-		}
-		
-	type Name struct {
-			Name string `json:"$"`
-		}
-	
-	type StreetAddress struct {
-			Line struct {
-				StreetAddress string `json:"$"`
-			}
-		}
-	
-	type City struct {
-			Name string `json:"$"`
-		}
-		
-	type State struct {
-			State string `json:"$"`
-		} // `json:"iso3166-2"`
-			
-	type PostalCode struct {
-			PostalCode string `json:"$"`
-		}
-	
-	type Country struct {
-			Name struct {
-				Name string `json:"$"`
-			}
-			Code2 struct {
-				Code2 string `json:"$"`
-			}	
-		} // `json:"iso3166-1"`
-		
+type Handle struct {
+	Handle string `json:"$"`
+}
+
+type Name struct {
+	Name string `json:"$"`
+}
+
+type StreetAddress struct {
+	Line struct {
+		StreetAddress string `json:"$"`
+	}
+}
+
+type City struct {
+	Name string `json:"$"`
+}
+
+type State struct {
+	State string `json:"$"`
+} // `json:"iso3166-2"`
+
+type PostalCode struct {
+	PostalCode string `json:"$"`
+}
+
+type Country struct {
+	Name struct {
+		Name string `json:"$"`
+	}
+	Code2 struct {
+		Code2 string `json:"$"`
+	}
+} // `json:"iso3166-1"`
+
 type CustomerRecord struct {
 	Customer struct {
-		Handle Handle
-		Name Name
+		Handle        Handle
+		Name          Name
 		StreetAddress StreetAddress
-		City City
-		State State `json:"iso3166-2"`
-		PostalCode PostalCode
-		Country Country `json:"iso3166-1"`
+		City          City
+		State         State `json:"iso3166-2"`
+		PostalCode    PostalCode
+		Country       Country `json:"iso3166-1"`
 	}
 }
 
 type OrgRecord struct {
 	Org struct {
-		Handle Handle
-		Name Name
+		Handle        Handle
+		Name          Name
 		StreetAddress StreetAddress
-		City City
-		State State `json:"iso3166-2"`
-		PostalCode PostalCode
-		Country Country `json:"iso3166-1"`	
+		City          City
+		State         State `json:"iso3166-2"`
+		PostalCode    PostalCode
+		Country       Country `json:"iso3166-1"`
 	}
 }
 
@@ -64,7 +64,7 @@ type WhoisRecord struct {
 		NetworkRef struct {
 			NetworkRef string `json:"$"`
 		} `json:"ref"`
-		
+
 		ParentNetworkRef struct {
 			Reference string `json:"$"`
 			Handle    string `json:"@handle"`
@@ -80,9 +80,9 @@ type WhoisRecord struct {
 		}
 
 		OwnerInfo struct {
-			Name          string `json:"@name"`
-			Handle        string `json:"@handle"`
-			Reference 	  string `json:"$"`
+			Name      string `json:"@name"`
+			Handle    string `json:"@handle"`
+			Reference string `json:"$"`
 		} `json:"customerRef"`
 
 		OrgRef struct {
@@ -104,7 +104,7 @@ type WhoisRecord struct {
 		Handle struct {
 			Handle string `json:"$"`
 		}
-		NetBlocks        struct {
+		NetBlocks struct {
 			Netblock struct {
 				CidrLength struct {
 					CidrLength string `json:"$"`
@@ -129,7 +129,7 @@ type WhoisRecord struct {
 }
 
 type ReturnJSON struct {
-	WhoisRecord *WhoisRecord `json:"whoIsRecord"`
+	WhoisRecord    *WhoisRecord    `json:"whoIsRecord"`
 	CustomerRecord *CustomerRecord `json:"customerRecord,omitempty"`
-	OrgRecord *OrgRecord `json:"orgRecord,omitempty"`
+	OrgRecord      *OrgRecord      `json:"orgRecord,omitempty"`
 }

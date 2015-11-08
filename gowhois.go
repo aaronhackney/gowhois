@@ -33,7 +33,7 @@ func getContent(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return body, nil
 }
 
@@ -41,7 +41,7 @@ func getWhois(url string) (*WhoisRecord, error) {
 	content, err := getContent(fmt.Sprintf(url))
 
 	var whoisRecord WhoisRecord
-		
+
 	err = json.Unmarshal(content, &whoisRecord)
 	if err != nil {
 		// An error occurred while converting our JSON to an object
@@ -49,15 +49,15 @@ func getWhois(url string) (*WhoisRecord, error) {
 		fmt.Println(err)
 		return nil, err
 	}
-	
+
 	return &whoisRecord, err
 }
 
 func getCustRecord(url string) (*CustomerRecord, error) {
 	content, err := getContent(fmt.Sprintf(url))
-	
+
 	var customerRecord CustomerRecord
-	
+
 	err = json.Unmarshal(content, &customerRecord)
 
 	if err != nil {
@@ -66,15 +66,15 @@ func getCustRecord(url string) (*CustomerRecord, error) {
 		fmt.Println(err)
 		return nil, err
 	}
-	
+
 	return &customerRecord, err
 }
 
 func getOrgRecord(url string) (*OrgRecord, error) {
 	content, err := getContent(fmt.Sprintf(url))
-	
+
 	var orgRecord OrgRecord
-	
+
 	err = json.Unmarshal(content, &orgRecord)
 
 	if err != nil {
@@ -83,7 +83,7 @@ func getOrgRecord(url string) (*OrgRecord, error) {
 		fmt.Println(err)
 		return nil, err
 	}
-	
+
 	return &orgRecord, err
 }
 
@@ -92,25 +92,24 @@ func main() {
 	//TODO: CLI input validation
 	var customerRecord *CustomerRecord
 	var orgRecord *OrgRecord
-	
+
 	argsWithoutProg := os.Args[1:]
 	url := "http://whois.arin.net/rest/ip/" + argsWithoutProg[0]
 	whois, _ := getWhois(url)
-	
+
 	if string(whois.Net.OwnerInfo.Reference) != "" {
-		customerRecord, _ = getCustRecord(string (whois.Net.OwnerInfo.Reference))		
+		customerRecord, _ = getCustRecord(string(whois.Net.OwnerInfo.Reference))
 	}
 
 	if string(whois.Net.OrgRef.Reference) != "" {
-		orgRecord, _ = getOrgRecord(string (whois.Net.OrgRef.Reference))		
+		orgRecord, _ = getOrgRecord(string(whois.Net.OrgRef.Reference))
 	}
 
 	var returnJson ReturnJSON
 	returnJson.WhoisRecord = whois
 	returnJson.CustomerRecord = customerRecord
 	returnJson.OrgRecord = orgRecord
-	
-	
+
 	jsonOutput, err := json.MarshalIndent(&returnJson, "", "\t")
 
 	if err != nil {
