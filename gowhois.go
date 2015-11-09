@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"os"
+	"regexp"
 )
 
 func getContent(url string) ([]byte, error) {
@@ -89,26 +89,26 @@ func getOrgRecord(url string) (*OrgRecord, error) {
 	return &orgRecord, err
 }
 
-func printRecord(whoisRecord *WhoisRecord,customerRecord *CustomerRecord, orgRecord *OrgRecord)(error) {
-	
+func printRecord(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgRecord *OrgRecord) error {
+
 	fmt.Println("\nNetblock: " + whoisRecord.Net.NetBlocks.Netblock.StartAddress.StartAddress + "/" + whoisRecord.Net.NetBlocks.Netblock.CidrLength.CidrLength + "\t (" + whoisRecord.Net.NetworkRef.NetworkRef + ")")
 	fmt.Println("----------------------------------------------------------------")
 	fmt.Println("\t " + whoisRecord.Net.NetBlocks.Netblock.StartAddress.StartAddress + " - " + whoisRecord.Net.NetBlocks.Netblock.EndAddress.EndAddress)
-	
+
 	if string(whoisRecord.Net.OrgRef.Reference) != "" {
-		fmt.Println("\nOrg Handle: " + orgRecord.Org.Handle.Handle + "\t("  + whoisRecord.Net.OrgRef.Reference + ")")
+		fmt.Println("\nOrg Handle: " + orgRecord.Org.Handle.Handle + "\t(" + whoisRecord.Net.OrgRef.Reference + ")")
 		fmt.Println("----------------------------------------------------------------")
-		fmt.Println("\t " + orgRecord.Org.Name.Name)		
-		fmt.Println("\t " + orgRecord.Org.StreetAddress.Line.StreetAddress + "\t " )
+		fmt.Println("\t " + orgRecord.Org.Name.Name)
+		fmt.Println("\t " + orgRecord.Org.StreetAddress.Line.StreetAddress + "\t ")
 		fmt.Println("\t " + orgRecord.Org.City.City + " " + " " + orgRecord.Org.State.State + " " + orgRecord.Org.PostalCode.PostalCode + " " + orgRecord.Org.Country.Code2.Code2)
 		fmt.Println("\n")
 	}
 
 	if string(whoisRecord.Net.OwnerInfo.Reference) != "" {
-		fmt.Println("\nOwner Handle: " + customerRecord.Customer.Handle.Handle + "\t("  + whoisRecord.Net.OwnerInfo.Reference + ")")
+		fmt.Println("\nOwner Handle: " + customerRecord.Customer.Handle.Handle + "\t(" + whoisRecord.Net.OwnerInfo.Reference + ")")
 		fmt.Println("----------------------------------------------------------------")
-		fmt.Println("\t " + customerRecord.Customer.Name.Name)		
-		fmt.Println("\t " + customerRecord.Customer.StreetAddress.Line.StreetAddress + "\t " )
+		fmt.Println("\t " + customerRecord.Customer.Name.Name)
+		fmt.Println("\t " + customerRecord.Customer.StreetAddress.Line.StreetAddress + "\t ")
 		fmt.Println("\t " + customerRecord.Customer.City.City + " " + " " + customerRecord.Customer.State.State + " " + customerRecord.Customer.PostalCode.PostalCode + " " + customerRecord.Customer.Country.Code2.Code2)
 		fmt.Println("\n")
 	}
@@ -116,7 +116,7 @@ func printRecord(whoisRecord *WhoisRecord,customerRecord *CustomerRecord, orgRec
 	return nil
 }
 
-func generateJson(whoisRecord *WhoisRecord,customerRecord *CustomerRecord, orgRecord *OrgRecord)([]byte, error) {
+func generateJson(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgRecord *OrgRecord) ([]byte, error) {
 	var returnJson ReturnJSON
 	returnJson.WhoisRecord = whoisRecord
 	returnJson.CustomerRecord = customerRecord
@@ -128,30 +128,31 @@ func generateJson(whoisRecord *WhoisRecord,customerRecord *CustomerRecord, orgRe
 		fmt.Println("err:", err.Error())
 		return nil, err
 	}
-	
+
 	return jsonOutput, nil
-	
+
 }
+
 func main() {
 	var customerRecord *CustomerRecord
 	var orgRecord *OrgRecord
 	var validIP = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$`)
-	
+
 	// Flags
-    isJson := flag.Bool("json", false, "json: change output from a screen print to JSON formatted output")	
+	isJson := flag.Bool("json", false, "json: change output from a screen print to JSON formatted output")
 	flag.Parse()
 
 	//fmt.Println("IP Arguments:", flag.Args())
-	
+
 	ip := flag.Args()[0]
-	
-	if  !validIP.MatchString(ip) {
+
+	if !validIP.MatchString(ip) {
 		fmt.Println("You must input a valid IP address: gowhois 1.2.3.4")
 		os.Exit(3)
 	}
-	
+
 	url := "http://whois.arin.net/rest/ip/" + ip
-	
+
 	whois, _ := getWhois(url)
 
 	if string(whois.Net.OwnerInfo.Reference) != "" {
