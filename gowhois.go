@@ -133,21 +133,38 @@ func generateJson(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgR
 
 }
 
+func help() {
+	fmt.Println("------------------------------------------------------------\n")
+	fmt.Println("You must input a valid IP address.\n")
+	fmt.Println("Examples:\n\t\t gowhois 1.2.3.4")
+	fmt.Println("\t\t gowhois -json 1.2.3.4\n")
+	fmt.Println("gowhois --help for info on switches\n")
+	fmt.Println("------------------------------------------------------------\n\n")
+
+	return
+}
+
 func main() {
 	var customerRecord *CustomerRecord
 	var orgRecord *OrgRecord
 	var validIP = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$`)
 
 	// Flags
-	isJson := flag.Bool("json", false, "json: change output from a screen print to JSON formatted output")
+	isJson := flag.Bool("json", false, "json: change output from a screen print to JSON formatted output: gowhois -json 1.2.3.4")
 	flag.Parse()
 
 	//fmt.Println("IP Arguments:", flag.Args())
 
+	if 	len(flag.Args()) < 1 {
+		help()
+		os.Exit(3)
+	}
+	
 	ip := flag.Args()[0]
 
 	if !validIP.MatchString(ip) {
 		fmt.Println("You must input a valid IP address: gowhois 1.2.3.4")
+		fmt.Println("gowhois --help for info on switches")
 		os.Exit(3)
 	}
 
