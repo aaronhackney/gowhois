@@ -15,7 +15,7 @@ type StreetAddress struct {
 }
 
 type City struct {
-	Name string `json:"$"`
+	City string `json:"$"`
 }
 
 type State struct {
