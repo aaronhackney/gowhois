@@ -1,5 +1,9 @@
 package main
 
+import (
+	"encoding/json"
+)
+
 type Handle struct {
 	Handle string `json:"$"`
 }
@@ -97,6 +101,7 @@ type WhoisRecord struct {
 		UpdateDate struct {
 			UpdateDate string `json:"$"`
 		}
+
 		Name struct {
 			Name string `json:"$"`
 		}
@@ -104,28 +109,45 @@ type WhoisRecord struct {
 		Handle struct {
 			Handle string `json:"$"`
 		}
+
 		NetBlocks struct {
-			Netblock struct {
-				CidrLength struct {
-					CidrLength string `json:"$"`
-				}
-				Description struct {
-					Description string `json:"$"`
-				}
-				EndAddress struct {
-					EndAddress string `json:"$"`
-				}
-
-				StartAddress struct {
-					StartAddress string `json:"$"`
-				}
-
-				BlockType struct {
-					Type string `json:"$"`
-				} `json:"type"`
-			}
+			NetblockRaw   json.RawMessage `json:"netblock"`
+			NetBlock      Netblock        `json:"-"`
+			NetblockArray []Netblock      `json:"-"`
 		}
+
+		Comment struct {
+			LineRaw   json.RawMessage `json:"line"`
+			Line      CommentLine     `json:"-"`
+			LineArray []CommentLine   `json:"-"`
+		} `json:"comment"`
 	}
+}
+
+type CommentLine struct {
+	Line string `json:"$"`
+}
+
+type Netblock struct {
+	CidrLength struct {
+		CidrLength string `json:"$"`
+	}
+
+	Description struct {
+		Description string `json:"$"`
+	}
+
+	EndAddress struct {
+		EndAddress string `json:"$"`
+	}
+
+	StartAddress struct {
+		StartAddress string `json:"$"`
+	}
+
+	BlockType struct {
+		Type string `json:"$"`
+	} `json:"type"`
 }
 
 type ReturnJSON struct {

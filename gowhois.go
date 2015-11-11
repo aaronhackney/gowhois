@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	"regexp"
 )
 
@@ -37,22 +38,6 @@ func getContent(url string) ([]byte, error) {
 	}
 
 	return body, nil
-}
-
-func getWhois(url string) (*WhoisRecord, error) {
-	content, err := getContent(fmt.Sprintf(url))
-
-	var whoisRecord WhoisRecord
-
-	err = json.Unmarshal(content, &whoisRecord)
-	if err != nil {
-		// An error occurred while converting our JSON to an object
-		fmt.Println("func getWhois(url string) (*WhoisRecord, error)")
-		fmt.Println(err)
-		return nil, err
-	}
-
-	return &whoisRecord, err
 }
 
 func getCustRecord(url string) (*CustomerRecord, error) {
@@ -91,9 +76,16 @@ func getOrgRecord(url string) (*OrgRecord, error) {
 
 func printRecord(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgRecord *OrgRecord) error {
 
-	fmt.Println("\nNetblock: " + whoisRecord.Net.NetBlocks.Netblock.StartAddress.StartAddress + "/" + whoisRecord.Net.NetBlocks.Netblock.CidrLength.CidrLength + "\t (" + whoisRecord.Net.NetworkRef.NetworkRef + ")")
+	// check if we have a single netblock or a slice of netblocks
+	typeOfBlock := reflect.TypeOf(whoisRecord.Net.NetBlocks.NetBlock)
+	fmt.Println(typeOfBlock)
+
+	// DEBUG
+	fmt.Printf("%+v\n", whoisRecord.Net.Comment.LineArray)
+
+	//	fmt.Println("\nNetblock: " + whoisRecord.Net.NetBlocks.Netblock.StartAddress.StartAddress + "/" + whoisRecord.Net.NetBlocks.Netblock.CidrLength.CidrLength + "\t (" + whoisRecord.Net.NetworkRef.NetworkRef + ")")
 	fmt.Println("----------------------------------------------------------------")
-	fmt.Println("\t " + whoisRecord.Net.NetBlocks.Netblock.StartAddress.StartAddress + " - " + whoisRecord.Net.NetBlocks.Netblock.EndAddress.EndAddress)
+	//	fmt.Println("\t " + whoisRecord.Net.NetBlocks.Netblock.StartAddress.StartAddress + " - " + whoisRecord.Net.NetBlocks.Netblock.EndAddress.EndAddress)
 
 	if string(whoisRecord.Net.OrgRef.Reference) != "" {
 		fmt.Println("\nOrg Handle: " + orgRecord.Org.Handle.Handle + "\t(" + whoisRecord.Net.OrgRef.Reference + ")")
@@ -133,6 +125,46 @@ func generateJson(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgR
 
 }
 
+func unmarshalJson(content []byte) (*WhoisRecord, error) {
+	var whois WhoisRecord
+
+	err := json.Unmarshal(content, &whois)
+	if err != nil {
+		fmt.Println("ERROR: ", err.Error())
+	}
+
+	// Peekahead to see if a [] or a {}
+	if string(whois.Net.NetBlocks.NetblockRaw[0]) == "[" {
+		err = json.Unmarshal(whois.Net.NetBlocks.NetblockRaw, &whois.Net.NetBlocks.NetblockArray)
+		if err != nil {
+			fmt.Println("ERROR: ", err.Error())
+			return nil, err
+		}
+	} else {
+		err = json.Unmarshal(whois.Net.NetBlocks.NetblockRaw, &whois.Net.NetBlocks.NetBlock)
+		if err != nil {
+			fmt.Println("ERROR: ", err.Error())
+			return nil, err
+		}
+	}
+
+	// Peekahead to see if a [] or a {}
+	if string(whois.Net.Comment.LineRaw[0]) == "[" {
+		err = json.Unmarshal(whois.Net.Comment.LineRaw, &whois.Net.Comment.LineArray)
+		if err != nil {
+			fmt.Println("ERROR: ", err.Error())
+			return nil, err
+		}
+	} else {
+		err = json.Unmarshal(whois.Net.Comment.LineRaw, &whois.Net.Comment.Line)
+		if err != nil {
+			fmt.Println("ERROR: ", err.Error())
+			return nil, err
+		}
+	}
+	return &whois, nil
+}
+
 func help() {
 	fmt.Println("------------------------------------------------------------\n")
 	fmt.Println("You must input a valid IP address.\n")
@@ -140,7 +172,6 @@ func help() {
 	fmt.Println("\t\t gowhois -json 1.2.3.4\n")
 	fmt.Println("gowhois --help for info on switches\n")
 	fmt.Println("------------------------------------------------------------\n\n")
-
 	return
 }
 
@@ -155,23 +186,29 @@ func main() {
 
 	//fmt.Println("IP Arguments:", flag.Args())
 
-	if 	len(flag.Args()) < 1 {
+	if len(flag.Args()) < 1 {
 		help()
 		os.Exit(3)
 	}
-	
+
 	ip := flag.Args()[0]
 
 	if !validIP.MatchString(ip) {
-		fmt.Println("You must input a valid IP address: gowhois 1.2.3.4")
-		fmt.Println("gowhois --help for info on switches")
+		help()
 		os.Exit(3)
 	}
 
 	url := "http://whois.arin.net/rest/ip/" + ip
 
-	whois, _ := getWhois(url)
+	//whois, _ := getWhois(url)
+	content, _ := getContent(fmt.Sprintf(url))
 
+	// Unmarshall the raw server response
+	whois, _ := unmarshalJson(content)
+
+	fmt.Println()
+
+	// Move these into the unmarshal function
 	if string(whois.Net.OwnerInfo.Reference) != "" {
 		customerRecord, _ = getCustRecord(string(whois.Net.OwnerInfo.Reference))
 	}
@@ -180,6 +217,7 @@ func main() {
 		orgRecord, _ = getOrgRecord(string(whois.Net.OrgRef.Reference))
 	}
 
+	// Output generation
 	if *isJson {
 		jsonOutput, _ := generateJson(whois, customerRecord, orgRecord)
 		fmt.Println(string(jsonOutput))
