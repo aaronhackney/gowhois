@@ -77,20 +77,6 @@ func getOrgRecord(url string) (*OrgRecord, error) {
 	if len(orgRecord.Org.StreetAddress.LineRaw) > 0 {
 		orgRecord.Org.StreetAddress.Line, _ = getLines(orgRecord.Org.StreetAddress.LineRaw)
 	}
-	/*	// Peekahead to see if a [] or a {}
-		if string(orgRecord.Org.StreetAddress.LineRaw[0]) == "[" {
-			err = json.Unmarshal(orgRecord.Org.StreetAddress.LineRaw, &orgRecord.Org.StreetAddress.LineArray)
-			if err != nil {
-				fmt.Println("ERROR: ", err.Error())
-				return nil, err
-			}
-		} else {
-			err = json.Unmarshal(orgRecord.Org.StreetAddress.LineRaw, &orgRecord.Org.StreetAddress.Line)
-			if err != nil {
-				fmt.Println("ERROR: ", err.Error())
-				return nil, err
-			}
-		}*/
 
 	return &orgRecord, err
 }
