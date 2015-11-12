@@ -43,11 +43,15 @@ type CustomerRecord struct {
 	Customer struct {
 		Handle        Handle
 		Name          Name
-		StreetAddress StreetAddress
-		City          City
-		State         State `json:"iso3166-2"`
-		PostalCode    PostalCode
-		Country       Country `json:"iso3166-1"`
+		StreetAddress struct {
+			LineRaw   json.RawMessage `json:"line"`
+			Line      Line            `json:"-"`
+			LineArray []Line          `json:"-"`
+		} `json:"streetAddress"`
+		City       City
+		State      State `json:"iso3166-2"`
+		PostalCode PostalCode
+		Country    Country `json:"iso3166-1"`
 	}
 }
 
@@ -55,11 +59,15 @@ type OrgRecord struct {
 	Org struct {
 		Handle        Handle
 		Name          Name
-		StreetAddress StreetAddress
-		City          City
-		State         State `json:"iso3166-2"`
-		PostalCode    PostalCode
-		Country       Country `json:"iso3166-1"`
+		StreetAddress struct {
+			LineRaw   json.RawMessage `json:"line"`
+			Line      Line            `json:"-"`
+			LineArray []Line          `json:"-"`
+		} `json:"streetAddress"`
+		City       City
+		State      State `json:"iso3166-2"`
+		PostalCode PostalCode
+		Country    Country `json:"iso3166-1"`
 	}
 }
 
@@ -111,24 +119,25 @@ type WhoisRecord struct {
 		}
 
 		NetBlocks struct {
-			NetblockRaw   json.RawMessage `json:"netblock"`
-			NetBlock      Netblock        `json:"-"`
-			NetblockArray []Netblock      `json:"-"`
+			NetBlockRaw   json.RawMessage `json:"netblock"`
+			NetBlock      NetBlock        `json:"-"`
+			NetBlockArray []NetBlock      `json:"-"`
 		}
 
 		Comment struct {
 			LineRaw   json.RawMessage `json:"line"`
-			Line      CommentLine     `json:"-"`
-			LineArray []CommentLine   `json:"-"`
+			Line      Line            `json:"-"`
+			LineArray []Line          `json:"-"`
 		} `json:"comment"`
 	}
 }
 
-type CommentLine struct {
-	Line string `json:"$"`
+type Line struct {
+	Line   string `json:"$"`
+	Number string `json:"@number"`
 }
 
-type Netblock struct {
+type NetBlock struct {
 	CidrLength struct {
 		CidrLength string `json:"$"`
 	}
@@ -154,4 +163,8 @@ type ReturnJSON struct {
 	WhoisRecord    *WhoisRecord    `json:"whoIsRecord"`
 	CustomerRecord *CustomerRecord `json:"customerRecord,omitempty"`
 	OrgRecord      *OrgRecord      `json:"orgRecord,omitempty"`
+}
+
+type RawBuffer struct {
+	entry json.RawMessage
 }

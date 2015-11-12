@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"reflect"
 	"regexp"
 )
 
@@ -54,6 +53,21 @@ func getCustRecord(url string) (*CustomerRecord, error) {
 		return nil, err
 	}
 
+	// Peekahead to see if a [] or a {}
+	if string(customerRecord.Customer.StreetAddress.LineRaw[0]) == "[" {
+		err = json.Unmarshal(customerRecord.Customer.StreetAddress.LineRaw, &customerRecord.Customer.StreetAddress.LineArray)
+		if err != nil {
+			fmt.Println("ERROR: ", err.Error())
+			return nil, err
+		}
+	} else {
+		err = json.Unmarshal(customerRecord.Customer.StreetAddress.LineRaw, &customerRecord.Customer.StreetAddress.Line)
+		if err != nil {
+			fmt.Println("ERROR: ", err.Error())
+			return nil, err
+		}
+	}
+
 	return &customerRecord, err
 }
 
@@ -71,41 +85,22 @@ func getOrgRecord(url string) (*OrgRecord, error) {
 		return nil, err
 	}
 
+	// Peekahead to see if a [] or a {}
+	if string(orgRecord.Org.StreetAddress.LineRaw[0]) == "[" {
+		err = json.Unmarshal(orgRecord.Org.StreetAddress.LineRaw, &orgRecord.Org.StreetAddress.LineArray)
+		if err != nil {
+			fmt.Println("ERROR: ", err.Error())
+			return nil, err
+		}
+	} else {
+		err = json.Unmarshal(orgRecord.Org.StreetAddress.LineRaw, &orgRecord.Org.StreetAddress.Line)
+		if err != nil {
+			fmt.Println("ERROR: ", err.Error())
+			return nil, err
+		}
+	}
+
 	return &orgRecord, err
-}
-
-func printRecord(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgRecord *OrgRecord) error {
-
-	// check if we have a single netblock or a slice of netblocks
-	typeOfBlock := reflect.TypeOf(whoisRecord.Net.NetBlocks.NetBlock)
-	fmt.Println(typeOfBlock)
-
-	// DEBUG
-	fmt.Printf("%+v\n", whoisRecord.Net.Comment.LineArray)
-
-	//	fmt.Println("\nNetblock: " + whoisRecord.Net.NetBlocks.Netblock.StartAddress.StartAddress + "/" + whoisRecord.Net.NetBlocks.Netblock.CidrLength.CidrLength + "\t (" + whoisRecord.Net.NetworkRef.NetworkRef + ")")
-	fmt.Println("----------------------------------------------------------------")
-	//	fmt.Println("\t " + whoisRecord.Net.NetBlocks.Netblock.StartAddress.StartAddress + " - " + whoisRecord.Net.NetBlocks.Netblock.EndAddress.EndAddress)
-
-	if string(whoisRecord.Net.OrgRef.Reference) != "" {
-		fmt.Println("\nOrg Handle: " + orgRecord.Org.Handle.Handle + "\t(" + whoisRecord.Net.OrgRef.Reference + ")")
-		fmt.Println("----------------------------------------------------------------")
-		fmt.Println("\t " + orgRecord.Org.Name.Name)
-		fmt.Println("\t " + orgRecord.Org.StreetAddress.Line.StreetAddress + "\t ")
-		fmt.Println("\t " + orgRecord.Org.City.City + " " + " " + orgRecord.Org.State.State + " " + orgRecord.Org.PostalCode.PostalCode + " " + orgRecord.Org.Country.Code2.Code2)
-		fmt.Println("\n")
-	}
-
-	if string(whoisRecord.Net.OwnerInfo.Reference) != "" {
-		fmt.Println("\nOwner Handle: " + customerRecord.Customer.Handle.Handle + "\t(" + whoisRecord.Net.OwnerInfo.Reference + ")")
-		fmt.Println("----------------------------------------------------------------")
-		fmt.Println("\t " + customerRecord.Customer.Name.Name)
-		fmt.Println("\t " + customerRecord.Customer.StreetAddress.Line.StreetAddress + "\t ")
-		fmt.Println("\t " + customerRecord.Customer.City.City + " " + " " + customerRecord.Customer.State.State + " " + customerRecord.Customer.PostalCode.PostalCode + " " + customerRecord.Customer.Country.Code2.Code2)
-		fmt.Println("\n")
-	}
-
-	return nil
 }
 
 func generateJson(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgRecord *OrgRecord) ([]byte, error) {
@@ -125,7 +120,7 @@ func generateJson(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgR
 
 }
 
-func unmarshalJson(content []byte) (*WhoisRecord, error) {
+func unmarshalWhoisJson(content []byte) (*WhoisRecord, error) {
 	var whois WhoisRecord
 
 	err := json.Unmarshal(content, &whois)
@@ -134,35 +129,62 @@ func unmarshalJson(content []byte) (*WhoisRecord, error) {
 	}
 
 	// Peekahead to see if a [] or a {}
-	if string(whois.Net.NetBlocks.NetblockRaw[0]) == "[" {
-		err = json.Unmarshal(whois.Net.NetBlocks.NetblockRaw, &whois.Net.NetBlocks.NetblockArray)
-		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
-			return nil, err
-		}
-	} else {
-		err = json.Unmarshal(whois.Net.NetBlocks.NetblockRaw, &whois.Net.NetBlocks.NetBlock)
-		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
-			return nil, err
+	if len(whois.Net.NetBlocks.NetBlockRaw) > 0 {
+		if string(whois.Net.NetBlocks.NetBlockRaw[0]) == "[" {
+			err = json.Unmarshal(whois.Net.NetBlocks.NetBlockRaw, &whois.Net.NetBlocks.NetBlockArray)
+			if err != nil {
+				fmt.Println("ERROR: ", err.Error())
+				return nil, err
+			}
+		} else {
+			makeArray(whois.Net.NetBlocks.NetBlockRaw)
+			err = json.Unmarshal(whois.Net.NetBlocks.NetBlockRaw, &whois.Net.NetBlocks.NetBlock)
+			if err != nil {
+				fmt.Println("ERROR: ", err.Error())
+				return nil, err
+			}
 		}
 	}
 
 	// Peekahead to see if a [] or a {}
-	if string(whois.Net.Comment.LineRaw[0]) == "[" {
-		err = json.Unmarshal(whois.Net.Comment.LineRaw, &whois.Net.Comment.LineArray)
-		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
-			return nil, err
-		}
-	} else {
-		err = json.Unmarshal(whois.Net.Comment.LineRaw, &whois.Net.Comment.Line)
-		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
-			return nil, err
+
+	if len(whois.Net.Comment.LineRaw) > 0 {
+		if string(whois.Net.Comment.LineRaw[0]) == "[" {
+			err = json.Unmarshal(whois.Net.Comment.LineRaw, &whois.Net.Comment.LineArray)
+			if err != nil {
+				fmt.Println("ERROR: ", err.Error())
+				return nil, err
+			}
+		} else {
+			err = json.Unmarshal(whois.Net.Comment.LineRaw, &whois.Net.Comment.Line)
+			if err != nil {
+				fmt.Println("ERROR: ", err.Error())
+				return nil, err
+			}
 		}
 	}
+
 	return &whois, nil
+}
+
+func makeArray(rawJson json.RawMessage) json.RawMessage {
+	// take raw message and make it an array
+	var myObject interface{}
+	var mySlice []interface{}
+	err := json.Unmarshal(rawJson, &myObject)
+	if err != nil {
+		fmt.Println("ERROR: ", err.Error())
+		return nil
+	}
+
+	fmt.Printf("Type: %T", myObject)
+
+	mySlice = append(mySlice, myObject)
+
+	// now reencode to rawjson
+
+	return nil
+
 }
 
 func help() {
@@ -204,7 +226,7 @@ func main() {
 	content, _ := getContent(fmt.Sprintf(url))
 
 	// Unmarshall the raw server response
-	whois, _ := unmarshalJson(content)
+	whois, _ := unmarshalWhoisJson(content)
 
 	fmt.Println()
 
