@@ -154,7 +154,3 @@ type ReturnJSON struct {
 	CustomerRecord *CustomerRecord `json:"customerRecord,omitempty"`
 	OrgRecord      *OrgRecord      `json:"orgRecord,omitempty"`
 }
-
-type RawBuffer struct {
-	entry json.RawMessage
-}
