@@ -53,19 +53,8 @@ func getCustRecord(url string) (*CustomerRecord, error) {
 		return nil, err
 	}
 
-	// Peekahead to see if a [] or a {}
-	if string(customerRecord.Customer.StreetAddress.LineRaw[0]) == "[" {
-		err = json.Unmarshal(customerRecord.Customer.StreetAddress.LineRaw, &customerRecord.Customer.StreetAddress.LineArray)
-		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
-			return nil, err
-		}
-	} else {
-		err = json.Unmarshal(customerRecord.Customer.StreetAddress.LineRaw, &customerRecord.Customer.StreetAddress.Line)
-		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
-			return nil, err
-		}
+	if len(customerRecord.Customer.StreetAddress.LineRaw) > 0 {
+		customerRecord.Customer.StreetAddress.Line, _ = getLines(customerRecord.Customer.StreetAddress.LineRaw)
 	}
 
 	return &customerRecord, err
@@ -85,20 +74,23 @@ func getOrgRecord(url string) (*OrgRecord, error) {
 		return nil, err
 	}
 
-	// Peekahead to see if a [] or a {}
-	if string(orgRecord.Org.StreetAddress.LineRaw[0]) == "[" {
-		err = json.Unmarshal(orgRecord.Org.StreetAddress.LineRaw, &orgRecord.Org.StreetAddress.LineArray)
-		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
-			return nil, err
-		}
-	} else {
-		err = json.Unmarshal(orgRecord.Org.StreetAddress.LineRaw, &orgRecord.Org.StreetAddress.Line)
-		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
-			return nil, err
-		}
+	if len(orgRecord.Org.StreetAddress.LineRaw) > 0 {
+		orgRecord.Org.StreetAddress.Line, _ = getLines(orgRecord.Org.StreetAddress.LineRaw)
 	}
+	/*	// Peekahead to see if a [] or a {}
+		if string(orgRecord.Org.StreetAddress.LineRaw[0]) == "[" {
+			err = json.Unmarshal(orgRecord.Org.StreetAddress.LineRaw, &orgRecord.Org.StreetAddress.LineArray)
+			if err != nil {
+				fmt.Println("ERROR: ", err.Error())
+				return nil, err
+			}
+		} else {
+			err = json.Unmarshal(orgRecord.Org.StreetAddress.LineRaw, &orgRecord.Org.StreetAddress.Line)
+			if err != nil {
+				fmt.Println("ERROR: ", err.Error())
+				return nil, err
+			}
+		}*/
 
 	return &orgRecord, err
 }
@@ -128,63 +120,45 @@ func unmarshalWhoisJson(content []byte) (*WhoisRecord, error) {
 		fmt.Println("ERROR: ", err.Error())
 	}
 
-	// Peekahead to see if a [] or a {}
 	if len(whois.Net.NetBlocks.NetBlockRaw) > 0 {
-		if string(whois.Net.NetBlocks.NetBlockRaw[0]) == "[" {
-			err = json.Unmarshal(whois.Net.NetBlocks.NetBlockRaw, &whois.Net.NetBlocks.NetBlockArray)
-			if err != nil {
-				fmt.Println("ERROR: ", err.Error())
-				return nil, err
-			}
-		} else {
-			makeArray(whois.Net.NetBlocks.NetBlockRaw)
-			err = json.Unmarshal(whois.Net.NetBlocks.NetBlockRaw, &whois.Net.NetBlocks.NetBlock)
-			if err != nil {
-				fmt.Println("ERROR: ", err.Error())
-				return nil, err
-			}
-		}
+		// Netblock may be a singleton or an array. Return only arrays
+		whois.Net.NetBlocks.NetBlock, _ = getNetBlocks(whois.Net.NetBlocks.NetBlockRaw)
 	}
 
-	// Peekahead to see if a [] or a {}
-
 	if len(whois.Net.Comment.LineRaw) > 0 {
-		if string(whois.Net.Comment.LineRaw[0]) == "[" {
-			err = json.Unmarshal(whois.Net.Comment.LineRaw, &whois.Net.Comment.LineArray)
-			if err != nil {
-				fmt.Println("ERROR: ", err.Error())
-				return nil, err
-			}
-		} else {
-			err = json.Unmarshal(whois.Net.Comment.LineRaw, &whois.Net.Comment.Line)
-			if err != nil {
-				fmt.Println("ERROR: ", err.Error())
-				return nil, err
-			}
-		}
+		// Comment may be a singleton or an array. Return only arrays
+		whois.Net.Comment.Line, _ = getLines(whois.Net.Comment.LineRaw)
 	}
 
 	return &whois, nil
 }
 
-func makeArray(rawJson json.RawMessage) json.RawMessage {
-	// take raw message and make it an array
-	var myObject interface{}
-	var mySlice []interface{}
-	err := json.Unmarshal(rawJson, &myObject)
-	if err != nil {
-		fmt.Println("ERROR: ", err.Error())
-		return nil
+func getLines(dat []byte) ([]*Line, error) {
+	var line Line
+	if err := json.Unmarshal(dat, &line); err == nil {
+		return []*Line{&line}, nil
 	}
 
-	fmt.Printf("Type: %T", myObject)
+	var lineList []*Line
+	if err := json.Unmarshal(dat, &lineList); err == nil {
+		return lineList, nil
+	}
 
-	mySlice = append(mySlice, myObject)
+	return nil, nil
+}
 
-	// now reencode to rawjson
+func getNetBlocks(dat []byte) ([]*NetBlock, error) {
+	var nb NetBlock
+	if err := json.Unmarshal(dat, &nb); err == nil {
+		return []*NetBlock{&nb}, nil
+	}
 
-	return nil
+	var nbl []*NetBlock
+	if err := json.Unmarshal(dat, &nbl); err == nil {
+		return nbl, nil
+	}
 
+	return nil, nil
 }
 
 func help() {
