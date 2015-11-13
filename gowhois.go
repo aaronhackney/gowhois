@@ -55,6 +55,7 @@ func getCustRecord(url string) (*CustomerRecord, error) {
 
 	if len(customerRecord.Customer.StreetAddress.LineRaw) > 0 {
 		customerRecord.Customer.StreetAddress.Line, _ = getLines(customerRecord.Customer.StreetAddress.LineRaw)
+		customerRecord.Customer.StreetAddress.LineRaw = []byte{}
 	}
 
 	return &customerRecord, err
@@ -76,6 +77,7 @@ func getOrgRecord(url string) (*OrgRecord, error) {
 
 	if len(orgRecord.Org.StreetAddress.LineRaw) > 0 {
 		orgRecord.Org.StreetAddress.Line, _ = getLines(orgRecord.Org.StreetAddress.LineRaw)
+		orgRecord.Org.StreetAddress.LineRaw = []byte{}
 	}
 
 	return &orgRecord, err
@@ -95,7 +97,6 @@ func generateJson(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgR
 	}
 
 	return jsonOutput, nil
-
 }
 
 func unmarshalWhoisJson(content []byte) (*WhoisRecord, error) {
@@ -109,11 +110,13 @@ func unmarshalWhoisJson(content []byte) (*WhoisRecord, error) {
 	if len(whois.Net.NetBlocks.NetBlockRaw) > 0 {
 		// Netblock may be a singleton or an array. Return only arrays
 		whois.Net.NetBlocks.NetBlock, _ = getNetBlocks(whois.Net.NetBlocks.NetBlockRaw)
+		whois.Net.NetBlocks.NetBlockRaw = []byte{}
 	}
 
 	if len(whois.Net.Comment.LineRaw) > 0 {
 		// Comment may be a singleton or an array. Return only arrays
 		whois.Net.Comment.Line, _ = getLines(whois.Net.Comment.LineRaw)
+		whois.Net.Comment.LineRaw = []byte{}
 	}
 
 	return &whois, nil

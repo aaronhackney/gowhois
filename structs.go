@@ -38,8 +38,8 @@ type CustomerRecord struct {
 		Handle        Handle
 		Name          Name
 		StreetAddress struct {
-			LineRaw json.RawMessage `json:"line"`
-			Line    []*Line         `json:"-"`
+			LineRaw json.RawMessage `json:"line,omitempty"`
+			Line    []*Line
 		} `json:"streetAddress"`
 		City       City
 		State      State `json:"iso3166-2"`
@@ -53,8 +53,8 @@ type OrgRecord struct {
 		Handle        Handle
 		Name          Name
 		StreetAddress struct {
-			LineRaw json.RawMessage `json:"line"`
-			Line    []*Line         `json:"-"`
+			LineRaw json.RawMessage `json:"line,omitempty"`
+			Line    []*Line
 		} `json:"streetAddress"`
 		City       City
 		State      State `json:"iso3166-2"`
@@ -111,13 +111,13 @@ type WhoisRecord struct {
 		}
 
 		NetBlocks struct {
-			NetBlockRaw json.RawMessage `json:"netblock"`
-			NetBlock    []*NetBlock     `json:"-"`
+			NetBlockRaw json.RawMessage `json:"netblock,omitempty"`
+			NetBlock    []*NetBlock
 		}
 
 		Comment struct {
-			LineRaw json.RawMessage `json:"line"`
-			Line    []*Line         `json:"-"`
+			LineRaw json.RawMessage `json:"line,omitempty"`
+			Line    []*Line
 		} `json:"comment"`
 	}
 }
