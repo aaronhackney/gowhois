@@ -44,8 +44,6 @@ func (*Whois) getContactRecord(url string) (*ContactRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	//b := []byte(entity)
-	//b := []byte(customer)
 
 	var contactRecord ContactRecord
 	var tempJsonMap map[string]interface{}
@@ -57,11 +55,9 @@ func (*Whois) getContactRecord(url string) (*ContactRecord, error) {
 
 	var prefix interface{}
 	if org, exists := tempJsonMap["org"]; exists {
-		//fmt.Printf("We have a org record type: %+v:\n", org)
 		contactRecord.ContactType = "org"
 		prefix = org
 	} else if cust, exists := tempJsonMap["customer"]; exists {
-		//fmt.Printf("We have a customer record type: %+v:\n", cust)
 		contactRecord.ContactType = "customer"
 		prefix = cust
 	}
@@ -74,8 +70,6 @@ func (*Whois) getContactRecord(url string) (*ContactRecord, error) {
 	contactRecord.Country = prefix.(map[string]interface{})["iso3166-1"].(map[string]interface{})["code2"].(map[string]interface{})["$"].(string)
 	contactRecord.StreetAddress, _ = getAddressLines(prefix)
 	contactRecord.Reference = prefix.(map[string]interface{})["ref"].(map[string]interface{})["$"].(string)
-
-	//fmt.Printf("Contact Record: %+v\n", contactRecord)
 
 	return &contactRecord, nil
 
@@ -119,11 +113,10 @@ func (*Whois) unmarshalResponse(b []byte) (*Whois, error) {
 
 	// Comments
 	if rawComment, exists := jsonUnwound["comment"]; exists {
-		//comments, _ := convertToSlice(jsonUnwound["comment"].(map[string]interface{})["line"])
 		comments, _ := convertToSlice(rawComment.(map[string]interface{})["line"])
 		var returnComments []string
-		for i := 0; i < len(comments); i++ {
-			returnComments = append(returnComments, comments[i].(map[string]interface{})["$"].(string))
+		for line := range comments {
+			returnComments = append(returnComments, comments[line].(map[string]interface{})["$"].(string))
 		}
 		whois.Comments = returnComments
 	}
@@ -133,7 +126,7 @@ func (*Whois) unmarshalResponse(b []byte) (*Whois, error) {
 	if err != nil {
 		fmt.Println("ERROR: ", err)
 	}
-	for i := 0; i < len(netBlockList); i++ {
+	for i := range netBlockList {
 		description := netBlockList[i].(map[string]interface{})["description"].(map[string]interface{})["$"].(string)
 		endAddress := netBlockList[i].(map[string]interface{})["endAddress"].(map[string]interface{})["$"].(string)
 		startAddress := netBlockList[i].(map[string]interface{})["startAddress"].(map[string]interface{})["$"].(string)

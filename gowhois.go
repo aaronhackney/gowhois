@@ -80,16 +80,12 @@ func help() {
 }
 
 func main() {
-	//	var customerRecord *CustomerRecord
-	//	var orgRecord *OrgRecord
 	var whois *Whois
 	var validIP = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$`)
 
 	// Flags
 	isJson := flag.Bool("json", false, "json: change output from a screen print to JSON formatted output: gowhois -json 1.2.3.4")
 	flag.Parse()
-
-	//fmt.Println("IP Arguments:", flag.Args())
 
 	if len(flag.Args()) < 1 {
 		help()
@@ -108,9 +104,6 @@ func main() {
 	content, _ := getContent(fmt.Sprintf(url))
 
 	whois, _ = whois.unmarshalResponse(content)
-	//fmt.Printf("\nwhois record %+v\n", whois)
-
-	//fmt.Printf("\n DEBUG: %+v\n", whois.ContactRef)
 	contactRecord, _ := whois.getContactRecord(whois.ContactRef["url"])
 
 	// Output generation
