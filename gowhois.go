@@ -39,55 +39,10 @@ func getContent(url string) ([]byte, error) {
 	return body, nil
 }
 
-func getCustRecord(url string) (*CustomerRecord, error) {
-	content, err := getContent(fmt.Sprintf(url))
-
-	var customerRecord CustomerRecord
-
-	err = json.Unmarshal(content, &customerRecord)
-
-	if err != nil {
-		// An error occurred while converting our JSON to an object
-		fmt.Println("func getCustRecord(url string) (*CustomerRecord, error)")
-		fmt.Println(err)
-		return nil, err
-	}
-
-	if len(customerRecord.Customer.StreetAddress.LineRaw) > 0 {
-		customerRecord.Customer.StreetAddress.Line, _ = getLines(customerRecord.Customer.StreetAddress.LineRaw)
-		customerRecord.Customer.StreetAddress.LineRaw = []byte{}
-	}
-
-	return &customerRecord, err
-}
-
-func getOrgRecord(url string) (*OrgRecord, error) {
-	content, err := getContent(fmt.Sprintf(url))
-
-	var orgRecord OrgRecord
-
-	err = json.Unmarshal(content, &orgRecord)
-
-	if err != nil {
-		// An error occurred while converting our JSON to an object
-		fmt.Println("func getOrgRecord(url string) (*OrgRecord, error)")
-		fmt.Println(err)
-		return nil, err
-	}
-
-	if len(orgRecord.Org.StreetAddress.LineRaw) > 0 {
-		orgRecord.Org.StreetAddress.Line, _ = getLines(orgRecord.Org.StreetAddress.LineRaw)
-		orgRecord.Org.StreetAddress.LineRaw = []byte{}
-	}
-
-	return &orgRecord, err
-}
-
-func generateJson(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgRecord *OrgRecord) ([]byte, error) {
+func generateJson(whoisRecord *Whois, contactRecord *ContactRecord) ([]byte, error) {
 	var returnJson ReturnJSON
 	returnJson.WhoisRecord = whoisRecord
-	returnJson.CustomerRecord = customerRecord
-	returnJson.OrgRecord = orgRecord
+	returnJson.ContactRecord = contactRecord
 
 	jsonOutput, err := json.MarshalIndent(&returnJson, "", "\t")
 
@@ -99,56 +54,166 @@ func generateJson(whoisRecord *WhoisRecord, customerRecord *CustomerRecord, orgR
 	return jsonOutput, nil
 }
 
-func unmarshalWhoisJson(content []byte) (*WhoisRecord, error) {
-	var whois WhoisRecord
+func convertToSlice(object interface{}) ([]interface{}, error) {
+	switch v := object.(type) {
+	case []interface{}:
+		return object.([]interface{}), nil
+	case interface{}:
+		var returnInterfaceArray []interface{} = make([]interface{}, 1)
+		returnInterfaceArray[0] = object
+		return returnInterfaceArray, nil
+	default:
+		fmt.Println(v)
+		return nil, nil
+	}
 
-	err := json.Unmarshal(content, &whois)
+	return nil, nil
+}
+
+func unmarshalJSON(b []byte) (*Whois, error) {
+	var whois Whois
+	var tempJsonMap map[string]interface{}
+	var contactPrefix interface{}
+	var returnNetBlocks []map[string]string
+
+	jsonUnwound := make(map[string]interface{})
+
+	// unmarshall into a map of interfaces
+	if err := json.Unmarshal(b, &tempJsonMap); err != nil {
+		return nil, err
+	}
+
+	// Extract the top level json nest []net
+	for key, value := range tempJsonMap["net"].(map[string]interface{}) {
+		jsonUnwound[key] = value
+	}
+
+	parentRefUrl := map[string]string{
+		"url":    jsonUnwound["parentNetRef"].(map[string]interface{})["$"].(string),
+		"handle": jsonUnwound["parentNetRef"].(map[string]interface{})["@handle"].(string),
+		"name":   jsonUnwound["parentNetRef"].(map[string]interface{})["@name"].(string),
+	}
+
+	if prefix, exists := jsonUnwound["orgRef"]; exists {
+		contactPrefix = prefix
+	} else if prefix, exists := jsonUnwound["customerRef"]; exists {
+		contactPrefix = prefix
+	}
+
+	whois.ContactRef = map[string]string{
+		"url":    contactPrefix.(map[string]interface{})["$"].(string),
+		"handle": contactPrefix.(map[string]interface{})["@handle"].(string),
+		"name":   contactPrefix.(map[string]interface{})["@name"].(string),
+	}
+
+	// Comments
+	if rawComment, exists := jsonUnwound["comment"]; exists {
+		//comments, _ := convertToSlice(jsonUnwound["comment"].(map[string]interface{})["line"])
+		comments, _ := convertToSlice(rawComment.(map[string]interface{})["line"])
+		var returnComments []string
+		for i := 0; i < len(comments); i++ {
+			returnComments = append(returnComments, comments[i].(map[string]interface{})["$"].(string))
+		}
+		whois.Comments = returnComments
+	}
+
+	// NetBlocks
+	netBlockList, err := convertToSlice(jsonUnwound["netBlocks"].(map[string]interface{})["netBlock"])
 	if err != nil {
-		fmt.Println("ERROR: ", err.Error())
+		fmt.Println("ERROR: ", err)
+	}
+	for i := 0; i < len(netBlockList); i++ {
+		description := netBlockList[i].(map[string]interface{})["description"].(map[string]interface{})["$"].(string)
+		endAddress := netBlockList[i].(map[string]interface{})["endAddress"].(map[string]interface{})["$"].(string)
+		startAddress := netBlockList[i].(map[string]interface{})["startAddress"].(map[string]interface{})["$"].(string)
+		blockType := netBlockList[i].(map[string]interface{})["type"].(map[string]interface{})["$"].(string)
+		cidrLength := netBlockList[i].(map[string]interface{})["cidrLength"].(map[string]interface{})["$"].(string)
+		netBlockObject := map[string]string{
+			"description":  description,
+			"startAddress": startAddress,
+			"endAddress":   endAddress,
+			"cidrLength":   cidrLength,
+			"type":         blockType,
+		}
+		returnNetBlocks = append(returnNetBlocks, netBlockObject)
 	}
 
-	if len(whois.Net.NetBlocks.NetBlockRaw) > 0 {
-		// Netblock may be a singleton or an array. Return only arrays
-		whois.Net.NetBlocks.NetBlock, _ = getNetBlocks(whois.Net.NetBlocks.NetBlockRaw)
-		whois.Net.NetBlocks.NetBlockRaw = []byte{}
+	if originAS, exists := jsonUnwound["originASes"]; exists {
+		whois.OriginASes = originAS.(map[string]interface{})["originAS"].(map[string]interface{})["$"].(string)
 	}
 
-	if len(whois.Net.Comment.LineRaw) > 0 {
-		// Comment may be a singleton or an array. Return only arrays
-		whois.Net.Comment.Line, _ = getLines(whois.Net.Comment.LineRaw)
-		whois.Net.Comment.LineRaw = []byte{}
-	}
+	whois.StartAddress = jsonUnwound["startAddress"].(map[string]interface{})["$"].(string)
+	whois.EndAddress = jsonUnwound["endAddress"].(map[string]interface{})["$"].(string)
+	whois.handle = jsonUnwound["handle"].(map[string]interface{})["$"].(string)
+	whois.name = jsonUnwound["name"].(map[string]interface{})["$"].(string)
+	whois.RegistrationDate = jsonUnwound["registrationDate"].(map[string]interface{})["$"].(string)
+	whois.UpdateDate = jsonUnwound["updateDate"].(map[string]interface{})["$"].(string)
+	whois.version = jsonUnwound["version"].(map[string]interface{})["$"].(string)
+	whois.ParentRefUrl = parentRefUrl
+	whois.netBlocks = returnNetBlocks
 
 	return &whois, nil
 }
 
-func getLines(dat []byte) ([]*Line, error) {
-	var line Line
-	if err := json.Unmarshal(dat, &line); err == nil {
-		return []*Line{&line}, nil
+func getContactRecord(url string) (*ContactRecord, error) {
+	content, err := getContent(fmt.Sprintf(url))
+
+	if err != nil {
+		return nil, err
+	}
+	//b := []byte(entity)
+	//b := []byte(customer)
+
+	var contactRecord ContactRecord
+	var tempJsonMap map[string]interface{}
+
+	// unmarshall into a map of interfaces
+	if err := json.Unmarshal(content, &tempJsonMap); err != nil {
+		return nil, err
 	}
 
-	var lineList []*Line
-	if err := json.Unmarshal(dat, &lineList); err == nil {
-		return lineList, nil
+	var prefix interface{}
+	if org, exists := tempJsonMap["org"]; exists {
+		//fmt.Printf("We have a org record type: %+v:\n", org)
+		contactRecord.ContactType = "org"
+		prefix = org
+	} else if cust, exists := tempJsonMap["customer"]; exists {
+		//fmt.Printf("We have a customer record type: %+v:\n", cust)
+		contactRecord.ContactType = "customer"
+		prefix = cust
 	}
 
-	return nil, nil
+	contactRecord.Handle = prefix.(map[string]interface{})["handle"].(map[string]interface{})["$"].(string)
+	contactRecord.Name = prefix.(map[string]interface{})["name"].(map[string]interface{})["$"].(string)
+	contactRecord.City = prefix.(map[string]interface{})["city"].(map[string]interface{})["$"].(string)
+	contactRecord.State = prefix.(map[string]interface{})["iso3166-2"].(map[string]interface{})["$"].(string)
+	contactRecord.PostalCode = prefix.(map[string]interface{})["postalCode"].(map[string]interface{})["$"].(string)
+	contactRecord.Country = prefix.(map[string]interface{})["iso3166-1"].(map[string]interface{})["code2"].(map[string]interface{})["$"].(string)
+	contactRecord.StreetAddress, _ = getAddressLines(prefix)
+	contactRecord.reference = prefix.(map[string]interface{})["ref"].(map[string]interface{})["$"].(string)
+
+	//fmt.Printf("Contact Record: %+v\n", contactRecord)
+
+	return &contactRecord, nil
+
 }
 
-func getNetBlocks(dat []byte) ([]*NetBlock, error) {
-	var nb NetBlock
-	if err := json.Unmarshal(dat, &nb); err == nil {
-		return []*NetBlock{&nb}, nil
+func getAddressLines(rawJson interface{}) ([]string, error) {
+	var streetAddress []string
+
+	address, err := convertToSlice(rawJson.(map[string]interface{})["streetAddress"].(map[string]interface{})["line"])
+	if err != nil {
+		return nil, err
 	}
 
-	var nbl []*NetBlock
-	if err := json.Unmarshal(dat, &nbl); err == nil {
-		return nbl, nil
+	for line := range address {
+		//fmt.Printf("\nADDRESS LINE: %+v\n", address[line])
+		streetAddress = append(streetAddress, address[line].(map[string]interface{})["$"].(string))
 	}
-
-	return nil, nil
+	return streetAddress, nil
 }
+
+/////////////////////////////////////
 
 func help() {
 	fmt.Println("------------------------------------------------------------\n")
@@ -161,8 +226,8 @@ func help() {
 }
 
 func main() {
-	var customerRecord *CustomerRecord
-	var orgRecord *OrgRecord
+	//	var customerRecord *CustomerRecord
+	//	var orgRecord *OrgRecord
 	var validIP = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$`)
 
 	// Flags
@@ -173,7 +238,7 @@ func main() {
 
 	if len(flag.Args()) < 1 {
 		help()
-		os.Exit(3)
+		os.Exit(0)
 	}
 
 	ip := flag.Args()[0]
@@ -185,28 +250,19 @@ func main() {
 
 	url := "http://whois.arin.net/rest/ip/" + ip
 
-	//whois, _ := getWhois(url)
 	content, _ := getContent(fmt.Sprintf(url))
 
-	// Unmarshall the raw server response
-	whois, _ := unmarshalWhoisJson(content)
+	whois, _ := unmarshalJSON(content)
+	//fmt.Printf("\nwhois record %+v\n", whois)
 
-	fmt.Println()
-
-	// Move these into the unmarshal function
-	if string(whois.Net.OwnerInfo.Reference) != "" {
-		customerRecord, _ = getCustRecord(string(whois.Net.OwnerInfo.Reference))
-	}
-
-	if string(whois.Net.OrgRef.Reference) != "" {
-		orgRecord, _ = getOrgRecord(string(whois.Net.OrgRef.Reference))
-	}
+	//fmt.Printf("\n DEBUG: %+v\n", whois.ContactRef)
+	contactRecord, _ := getContactRecord(whois.ContactRef["url"])
 
 	// Output generation
 	if *isJson {
-		jsonOutput, _ := generateJson(whois, customerRecord, orgRecord)
+		jsonOutput, _ := generateJson(whois, contactRecord)
 		fmt.Println(string(jsonOutput))
-	} else {
-		printRecord(whois, customerRecord, orgRecord)
-	}
+	} /*else {
+		printRecord(whois, contactRecord)
+	}*/
 }
