@@ -66,8 +66,6 @@ func convertToSlice(object interface{}) ([]interface{}, error) {
 		fmt.Println(v)
 		return nil, nil
 	}
-
-	return nil, nil
 }
 
 func unmarshalJSON(b []byte) (*Whois, error) {
