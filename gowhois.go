@@ -9,6 +9,8 @@ import (
 	"regexp"
 )
 
+var version = "No Version Provided"
+
 func getContent(url string) ([]byte, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -72,7 +74,7 @@ func getAddressLines(rawJson interface{}) ([]string, error) {
 func help() {
 	fmt.Println("------------------------------------------------------------\n")
 	fmt.Println("You must input a valid IP address.\n")
-	fmt.Println("Examples:\n\t\t gowhois 1.2.3.4")
+	fmt.Println("Examples:\n\t\t gowhois 208.0.0.0")
 	fmt.Println("\t\t gowhois -json 1.2.3.4\n")
 	fmt.Println("gowhois --help for info on switches\n")
 	fmt.Println("------------------------------------------------------------\n\n")
@@ -85,7 +87,14 @@ func main() {
 
 	// Flags
 	isJson := flag.Bool("json", false, "json: change output from a screen print to JSON formatted output: gowhois -json 1.2.3.4")
+	isVersion := flag.Bool("v", false, "Prints the gowhois version: gowhois -v")
 	flag.Parse()
+
+	if *isVersion {
+		fmt.Println("\nGowhois version", version)
+		fmt.Println("https://github.com/aaronhackney/gowhois\n")
+		os.Exit(0)
+	}
 
 	if len(flag.Args()) < 1 {
 		help()
@@ -110,7 +119,7 @@ func main() {
 	if *isJson {
 		jsonOutput, _ := whois.generateJson(whois, contactRecord)
 		fmt.Println(string(jsonOutput))
-	} /*else {
+	} else {
 		printRecord(whois, contactRecord)
-	}*/
+	}
 }
