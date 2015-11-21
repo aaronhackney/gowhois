@@ -5,7 +5,7 @@ import (
 )
 
 func printRecord(whoisRecord *Whois, contactRecord *ContactRecord) error {
-	fmt.Println("\nGowhois 0.5 https://github.com/aaronhackney/gowhois")
+	fmt.Println("\nGowhois", version, "https://github.com/aaronhackney/gowhois")
 	/////////////////////////
 	// NETBLOCKS
 	fmt.Println("-----------------------------------------------------------------")

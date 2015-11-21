@@ -9,7 +9,7 @@ import (
 	"regexp"
 )
 
-var version = "No Version Provided"
+var version = "0"
 
 func getContent(url string) ([]byte, error) {
 
