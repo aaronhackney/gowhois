@@ -3,13 +3,14 @@
 Usage: 
 ------------------------
 gowhois w.x.y.z
+Returns: Prints WHOIS data, including owner/org info and net block data
 
 gowhois -json w.x.y.z
-
 Returns: json of WHOIS data, including owner/org info and net block data
 
-TODO: Add better error handling when unmashalling whois record types that are undefined in our structs
+gowhois -v
+Returns: Prints version and link to github repo
 
-TODO: Add other kinds of whois data types
-
+gowhois --help
+Returns: Prints help menu
 
