@@ -37,7 +37,7 @@ func printRecord(whoisRecord *Whois, contactRecord *ContactRecord) error {
 		}
 	}
 
-	fmt.Println("\t " + contactRecord.City + "" + contactRecord.State + " " + contactRecord.PostalCode + " " + contactRecord.Country)
+	fmt.Println("\t "+contactRecord.City, contactRecord.State, contactRecord.PostalCode, contactRecord.Country)
 	fmt.Println("\n")
 
 	return nil
