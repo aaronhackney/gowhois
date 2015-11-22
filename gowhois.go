@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	//"regexp"
 )
 
 var version = "0"
@@ -82,7 +81,6 @@ func help() {
 
 func main() {
 	var whois *Whois
-	//var validIP = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$`)
 
 	// Flags
 	isJson := flag.Bool("json", false, "json: change output from a screen print to JSON formatted output: gowhois -json 1.2.3.4")
@@ -106,11 +104,6 @@ func main() {
 		help()
 		os.Exit(3)
 	}
-
-	/*if !validIP.MatchString(ip) {
-		help()
-		os.Exit(3)
-	}*/
 
 	url := "http://whois.arin.net/rest/ip/" + ip
 
