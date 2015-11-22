@@ -4,9 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
-	"regexp"
+	//"regexp"
 )
 
 var version = "0"
@@ -69,8 +70,6 @@ func getAddressLines(rawJson interface{}) ([]string, error) {
 	return streetAddress, nil
 }
 
-/////////////////////////////////////
-
 func help() {
 	fmt.Println("------------------------------------------------------------\n")
 	fmt.Println("You must input a valid IP address.\n")
@@ -83,11 +82,11 @@ func help() {
 
 func main() {
 	var whois *Whois
-	var validIP = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$`)
+	//var validIP = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$`)
 
 	// Flags
 	isJson := flag.Bool("json", false, "json: change output from a screen print to JSON formatted output: gowhois -json 1.2.3.4")
-	isVersion := flag.Bool("v", false, "Prints the gowhois version: gowhois -v")
+	isVersion := flag.Bool("v", false, "v: Prints the gowhois version: gowhois -v")
 	flag.Parse()
 
 	if *isVersion {
@@ -103,10 +102,15 @@ func main() {
 
 	ip := flag.Args()[0]
 
-	if !validIP.MatchString(ip) {
+	if net.ParseIP(ip) == nil {
 		help()
 		os.Exit(3)
 	}
+
+	/*if !validIP.MatchString(ip) {
+		help()
+		os.Exit(3)
+	}*/
 
 	url := "http://whois.arin.net/rest/ip/" + ip
 
@@ -115,7 +119,6 @@ func main() {
 	whois, _ = whois.unmarshalResponse(content)
 	contactRecord, _ := whois.getContactRecord(whois.ContactRef["url"])
 
-	// Output generation
 	if *isJson {
 		jsonOutput, _ := whois.generateJson(whois, contactRecord)
 		fmt.Println(string(jsonOutput))
