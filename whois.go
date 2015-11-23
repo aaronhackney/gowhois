@@ -39,37 +39,48 @@ type ContactRecord struct {
 }
 
 func (*Whois) getContactRecord(url string) (*ContactRecord, error) {
-	content, err := getContent(fmt.Sprintf(url))
+	var contactRecord ContactRecord
+	var jsonMap map[string]interface{}
 
+	content, err := getContent(fmt.Sprintf(url))
 	if err != nil {
 		return nil, err
 	}
 
-	var contactRecord ContactRecord
-	var tempJsonMap map[string]interface{}
-
 	// unmarshall into a map of interfaces
-	if err := json.Unmarshal(content, &tempJsonMap); err != nil {
+	if err := json.Unmarshal(content, &jsonMap); err != nil {
 		return nil, err
 	}
 
 	var prefix interface{}
-	if org, exists := tempJsonMap["org"]; exists {
+	if org, exists := jsonMap["org"]; exists {
 		contactRecord.ContactType = "org"
 		prefix = org
-	} else if cust, exists := tempJsonMap["customer"]; exists {
+	} else if cust, exists := jsonMap["customer"]; exists {
 		contactRecord.ContactType = "customer"
 		prefix = cust
 	}
 
-	contactRecord.Handle = prefix.(map[string]interface{})["handle"].(map[string]interface{})["$"].(string)
-	contactRecord.Name = prefix.(map[string]interface{})["name"].(map[string]interface{})["$"].(string)
-	contactRecord.City = prefix.(map[string]interface{})["city"].(map[string]interface{})["$"].(string)
-	contactRecord.State = prefix.(map[string]interface{})["iso3166-2"].(map[string]interface{})["$"].(string)
-	contactRecord.PostalCode = prefix.(map[string]interface{})["postalCode"].(map[string]interface{})["$"].(string)
-	contactRecord.Country = prefix.(map[string]interface{})["iso3166-1"].(map[string]interface{})["code2"].(map[string]interface{})["$"].(string)
+	for key, value := range prefix.(map[string]interface{}) {
+		switch key {
+		case "handle":
+			contactRecord.Handle = value.(map[string]interface{})["$"].(string)
+		case "name":
+			contactRecord.Name = value.(map[string]interface{})["$"].(string)
+		case "city":
+			contactRecord.City = value.(map[string]interface{})["$"].(string)
+		case "iso3166-2":
+			contactRecord.State = value.(map[string]interface{})["$"].(string)
+		case "postalCode":
+			contactRecord.PostalCode = value.(map[string]interface{})["$"].(string)
+		case "iso3166-1":
+			contactRecord.Country = value.(map[string]interface{})["code2"].(map[string]interface{})["$"].(string)
+		case "ref":
+			contactRecord.Reference = value.(map[string]interface{})["$"].(string)
+		}
+	}
+
 	contactRecord.StreetAddress, _ = getAddressLines(prefix)
-	contactRecord.Reference = prefix.(map[string]interface{})["ref"].(map[string]interface{})["$"].(string)
 
 	return &contactRecord, nil
 
@@ -77,96 +88,77 @@ func (*Whois) getContactRecord(url string) (*ContactRecord, error) {
 
 func (*Whois) unmarshalResponse(b []byte) (*Whois, error) {
 	var whois Whois
-	var tempJsonMap map[string]interface{}
-	var contactPrefix interface{}
+	var jsonMap map[string]interface{}
 	var returnNetBlocks []map[string]string
 
-	jsonUnwound := make(map[string]interface{})
-
 	// unmarshall into a map of interfaces
-	if err := json.Unmarshal(b, &tempJsonMap); err != nil {
+	if err := json.Unmarshal(b, &jsonMap); err != nil {
 		return nil, err
 	}
 
 	// Extract the top level json nest []net
-	for key, value := range tempJsonMap["net"].(map[string]interface{}) {
-		jsonUnwound[key] = value
-	}
+	for key, value := range jsonMap["net"].(map[string]interface{}) {
+		switch key {
+		case "startAddress":
+			whois.StartAddress = value.(map[string]interface{})["$"].(string)
+		case "endAddress":
+			whois.EndAddress = value.(map[string]interface{})["$"].(string)
+		case "handle":
+			whois.Handle = value.(map[string]interface{})["$"].(string)
+		case "name":
+			whois.Name = value.(map[string]interface{})["$"].(string)
+		case "version":
+			whois.Version = value.(map[string]interface{})["$"].(string)
+		case "orgRef", "customerRef":
+			whois.ContactRef = map[string]string{
+				"url":    value.(map[string]interface{})["$"].(string),
+				"handle": value.(map[string]interface{})["@handle"].(string),
+				"name":   value.(map[string]interface{})["@name"].(string),
+			}
+		case "comment":
+			comments, _ := convertToSlice(value.(map[string]interface{})["line"])
+			var returnComments []string
+			for i := range comments {
+				returnComments = append(returnComments, comments[i].(map[string]interface{})["$"].(string))
+			}
+			whois.Comments = returnComments
+		case "originASes":
+			whois.OriginASes = value.(map[string]interface{})["originAS"].(map[string]interface{})["$"].(string)
+		case "parentNetRef":
+			whois.ParentRefUrl = map[string]string{
+				"url":    value.(map[string]interface{})["$"].(string),
+				"handle": value.(map[string]interface{})["@handle"].(string),
+				"name":   value.(map[string]interface{})["@name"].(string),
+			}
+		case "registrationDate":
+			whois.RegistrationDate = value.(map[string]interface{})["$"].(string)
+		case "updateDate":
+			whois.UpdateDate = value.(map[string]interface{})["$"].(string)
+		case "netBlocks":
+			netBlockList, err := convertToSlice(value.(map[string]interface{})["netBlock"])
+			if err != nil {
+				fmt.Println("ERROR: ", err)
+			}
+			for i := range netBlockList {
+				description := netBlockList[i].(map[string]interface{})["description"].(map[string]interface{})["$"].(string)
+				endAddress := netBlockList[i].(map[string]interface{})["endAddress"].(map[string]interface{})["$"].(string)
+				startAddress := netBlockList[i].(map[string]interface{})["startAddress"].(map[string]interface{})["$"].(string)
+				blockType := netBlockList[i].(map[string]interface{})["type"].(map[string]interface{})["$"].(string)
+				cidrLength := netBlockList[i].(map[string]interface{})["cidrLength"].(map[string]interface{})["$"].(string)
+				netBlockObject := map[string]string{
+					"description":  description,
+					"startAddress": startAddress,
+					"endAddress":   endAddress,
+					"cidrLength":   cidrLength,
+					"type":         blockType,
+				}
+				returnNetBlocks = append(returnNetBlocks, netBlockObject)
+			}
 
-	prefixExists := false
-	if prefix, exists := jsonUnwound["orgRef"]; exists {
-		contactPrefix = prefix
-		prefixExists = true
-	} else if prefix, exists := jsonUnwound["customerRef"]; exists {
-		contactPrefix = prefix
-		prefixExists = true
-	}
+			whois.NetBlocks = returnNetBlocks
 
-	if prefixExists {
-		whois.ContactRef = map[string]string{
-			"url":    contactPrefix.(map[string]interface{})["$"].(string),
-			"handle": contactPrefix.(map[string]interface{})["@handle"].(string),
-			"name":   contactPrefix.(map[string]interface{})["@name"].(string),
-		}
+		} // end of switch
 	}
-
-	// Comments
-	if rawComment, exists := jsonUnwound["comment"]; exists {
-		comments, _ := convertToSlice(rawComment.(map[string]interface{})["line"])
-		var returnComments []string
-		for line := range comments {
-			returnComments = append(returnComments, comments[line].(map[string]interface{})["$"].(string))
-		}
-		whois.Comments = returnComments
-	}
-
-	// NetBlocks
-	netBlockList, err := convertToSlice(jsonUnwound["netBlocks"].(map[string]interface{})["netBlock"])
-	if err != nil {
-		fmt.Println("ERROR: ", err)
-	}
-	for i := range netBlockList {
-		description := netBlockList[i].(map[string]interface{})["description"].(map[string]interface{})["$"].(string)
-		endAddress := netBlockList[i].(map[string]interface{})["endAddress"].(map[string]interface{})["$"].(string)
-		startAddress := netBlockList[i].(map[string]interface{})["startAddress"].(map[string]interface{})["$"].(string)
-		blockType := netBlockList[i].(map[string]interface{})["type"].(map[string]interface{})["$"].(string)
-		cidrLength := netBlockList[i].(map[string]interface{})["cidrLength"].(map[string]interface{})["$"].(string)
-		netBlockObject := map[string]string{
-			"description":  description,
-			"startAddress": startAddress,
-			"endAddress":   endAddress,
-			"cidrLength":   cidrLength,
-			"type":         blockType,
-		}
-		returnNetBlocks = append(returnNetBlocks, netBlockObject)
-	}
-
-	if originAS, exists := jsonUnwound["originASes"]; exists {
-		whois.OriginASes = originAS.(map[string]interface{})["originAS"].(map[string]interface{})["$"].(string)
-	}
-
-	if parentPrefix, exists := jsonUnwound["parentNetRef"]; exists {
-		whois.ParentRefUrl = map[string]string{
-			"url":    parentPrefix.(map[string]interface{})["$"].(string),
-			"handle": parentPrefix.(map[string]interface{})["@handle"].(string),
-			"name":   parentPrefix.(map[string]interface{})["@name"].(string),
-		}
-	}
-
-	if prefixRegDate, exists := jsonUnwound["registrationDate"]; exists {
-		whois.RegistrationDate = prefixRegDate.(map[string]interface{})["$"].(string)
-	}
-
-	if prefextUpdateDate, exists := jsonUnwound["registrationDate"]; exists {
-		whois.UpdateDate = prefextUpdateDate.(map[string]interface{})["$"].(string)
-	}
-
-	whois.StartAddress = jsonUnwound["startAddress"].(map[string]interface{})["$"].(string)
-	whois.EndAddress = jsonUnwound["endAddress"].(map[string]interface{})["$"].(string)
-	whois.Handle = jsonUnwound["handle"].(map[string]interface{})["$"].(string)
-	whois.Name = jsonUnwound["name"].(map[string]interface{})["$"].(string)
-	whois.Version = jsonUnwound["version"].(map[string]interface{})["$"].(string)
-	whois.NetBlocks = returnNetBlocks
 
 	return &whois, nil
 }
