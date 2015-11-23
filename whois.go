@@ -47,8 +47,7 @@ func (*Whois) getContactRecord(url string) (*ContactRecord, error) {
 		return nil, err
 	}
 
-	// unmarshall into a map of interfaces
-	if err := json.Unmarshal(content, &jsonMap); err != nil {
+	if err := json.Unmarshal(content, &jsonMap); err != nil { // unmarshall into a map of interfaces
 		return nil, err
 	}
 
@@ -91,13 +90,11 @@ func (*Whois) unmarshalResponse(b []byte) (*Whois, error) {
 	var jsonMap map[string]interface{}
 	var returnNetBlocks []map[string]string
 
-	// unmarshall into a map of interfaces
-	if err := json.Unmarshal(b, &jsonMap); err != nil {
+	if err := json.Unmarshal(b, &jsonMap); err != nil { // unmarshall into a map of interfaces
 		return nil, err
 	}
 
-	// Extract the top level json nest []net
-	for key, value := range jsonMap["net"].(map[string]interface{}) {
+	for key, value := range jsonMap["net"].(map[string]interface{}) { // Extract the top level json nest []net
 		switch key {
 		case "startAddress":
 			whois.StartAddress = value.(map[string]interface{})["$"].(string)
@@ -154,10 +151,8 @@ func (*Whois) unmarshalResponse(b []byte) (*Whois, error) {
 				}
 				returnNetBlocks = append(returnNetBlocks, netBlockObject)
 			}
-
 			whois.NetBlocks = returnNetBlocks
-
-		} // end of switch
+		}
 	}
 
 	return &whois, nil
