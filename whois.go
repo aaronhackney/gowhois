@@ -16,12 +16,12 @@ type Whois struct {
 	EndAddress       string              `json:"endAddress"`
 	Handle           string              `json:"handle"`
 	Name             string              `json:"name"`
-	RegistrationDate string              `json:"registrationDate"`
-	UpdateDate       string              `json:"updateDate"`
+	RegistrationDate string              `json:"registrationDate,omitempty"`
+	UpdateDate       string              `json:"updateDate,omitempty"`
 	Version          string              `json:"version"`
 	OriginASes       string              `json:"originASes,omitempty"`
-	ParentRefUrl     map[string]string   `json:"parentRefUrl"`
-	ContactRef       map[string]string   `json:"ContactRef"`
+	ParentRefUrl     map[string]string   `json:"parentRefUrl,omitempty"`
+	ContactRef       map[string]string   `json:"ContactRef,omitempty"`
 	Comments         []string            `json:"comments,omitempty"`
 	NetBlocks        []map[string]string `json:"netBlocks"`
 }
@@ -93,12 +93,6 @@ func (*Whois) unmarshalResponse(b []byte) (*Whois, error) {
 		jsonUnwound[key] = value
 	}
 
-	parentRefUrl := map[string]string{
-		"url":    jsonUnwound["parentNetRef"].(map[string]interface{})["$"].(string),
-		"handle": jsonUnwound["parentNetRef"].(map[string]interface{})["@handle"].(string),
-		"name":   jsonUnwound["parentNetRef"].(map[string]interface{})["@name"].(string),
-	}
-
 	if prefix, exists := jsonUnwound["orgRef"]; exists {
 		contactPrefix = prefix
 	} else if prefix, exists := jsonUnwound["customerRef"]; exists {
@@ -146,14 +140,27 @@ func (*Whois) unmarshalResponse(b []byte) (*Whois, error) {
 		whois.OriginASes = originAS.(map[string]interface{})["originAS"].(map[string]interface{})["$"].(string)
 	}
 
+	if parentPrefix, exists := jsonUnwound["parentNetRef"]; exists {
+		whois.ParentRefUrl = map[string]string{
+			"url":    parentPrefix.(map[string]interface{})["$"].(string),
+			"handle": parentPrefix.(map[string]interface{})["@handle"].(string),
+			"name":   parentPrefix.(map[string]interface{})["@name"].(string),
+		}
+	}
+
+	if prefixRegDate, exists := jsonUnwound["registrationDate"]; exists {
+		whois.RegistrationDate = prefixRegDate.(map[string]interface{})["$"].(string)
+	}
+
+	if prefextUpdateDate, exists := jsonUnwound["registrationDate"]; exists {
+		whois.UpdateDate = prefextUpdateDate.(map[string]interface{})["$"].(string)
+	}
+
 	whois.StartAddress = jsonUnwound["startAddress"].(map[string]interface{})["$"].(string)
 	whois.EndAddress = jsonUnwound["endAddress"].(map[string]interface{})["$"].(string)
 	whois.Handle = jsonUnwound["handle"].(map[string]interface{})["$"].(string)
 	whois.Name = jsonUnwound["name"].(map[string]interface{})["$"].(string)
-	whois.RegistrationDate = jsonUnwound["registrationDate"].(map[string]interface{})["$"].(string)
-	whois.UpdateDate = jsonUnwound["updateDate"].(map[string]interface{})["$"].(string)
 	whois.Version = jsonUnwound["version"].(map[string]interface{})["$"].(string)
-	whois.ParentRefUrl = parentRefUrl
 	whois.NetBlocks = returnNetBlocks
 
 	return &whois, nil
