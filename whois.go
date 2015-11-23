@@ -93,16 +93,21 @@ func (*Whois) unmarshalResponse(b []byte) (*Whois, error) {
 		jsonUnwound[key] = value
 	}
 
+	prefixExists := false
 	if prefix, exists := jsonUnwound["orgRef"]; exists {
 		contactPrefix = prefix
+		prefixExists = true
 	} else if prefix, exists := jsonUnwound["customerRef"]; exists {
 		contactPrefix = prefix
+		prefixExists = true
 	}
 
-	whois.ContactRef = map[string]string{
-		"url":    contactPrefix.(map[string]interface{})["$"].(string),
-		"handle": contactPrefix.(map[string]interface{})["@handle"].(string),
-		"name":   contactPrefix.(map[string]interface{})["@name"].(string),
+	if prefixExists {
+		whois.ContactRef = map[string]string{
+			"url":    contactPrefix.(map[string]interface{})["$"].(string),
+			"handle": contactPrefix.(map[string]interface{})["@handle"].(string),
+			"name":   contactPrefix.(map[string]interface{})["@name"].(string),
+		}
 	}
 
 	// Comments
