@@ -5,10 +5,11 @@ import (
 )
 
 func printRecord(whoisRecord *Whois, contactRecord *ContactRecord) error {
-	fmt.Println("\nGowhois", version, "https://github.com/aaronhackney/gowhois")
+	//fmt.Println("\nGowhois", version, "https://github.com/aaronhackney/gowhois")
 	/////////////////////////
 	// NETBLOCKS
-	fmt.Println("-----------------------------------------------------------------")
+	//fmt.Println("-----------------------------------------------------------------")
+	fmt.Println("")
 	fmt.Println("Net Range:\t" + whoisRecord.StartAddress + " - " + whoisRecord.EndAddress)
 
 	if len(whoisRecord.NetBlocks) > 0 {
